@@ -98,52 +98,181 @@ class FPPAccelerometerStreamHandlerPlus: NSObject, MotionStreamHandler {
     }
 }
 
-class FPPUserAccelStreamHandlerPlus: NSObject, MotionStreamHandler {
-
-    var samplingPeriod = 200000 {
-        didSet {
-            _initMotionManager()
-            _motionManager.deviceMotionUpdateInterval = Double(samplingPeriod) * 0.000001
+// Shared motion manager coordinator
+class DeviceMotionCoordinator {
+    static let shared = DeviceMotionCoordinator()
+    
+    private var activeSinks: [String: FlutterEventSink] = [:]
+    private var sinkSamplingPeriods: [String: Int] = [:]
+    private var isUpdating = false
+    
+    private init() {}
+    
+    func registerSink(key: String, sink: @escaping FlutterEventSink, samplingPeriod: Int) {
+        activeSinks[key] = sink
+        sinkSamplingPeriods[key] = samplingPeriod
+        
+        if !isUpdating {
+            startUpdates(with: samplingPeriod)
+        } else {
+            // Use the most recent sampling period. Both user acceleration and gravity will be on the 
+            // same frequency since both come from DeviceMotion events
+            restartUpdates(with: samplingPeriod)
         }
     }
-
-    func onListen(
-            withArguments arguments: Any?,
-            eventSink sink: @escaping FlutterEventSink
-    ) -> FlutterError? {
+    
+    func updateSamplingPeriod(key: String, samplingPeriod: Int) {
+        sinkSamplingPeriods[key] = samplingPeriod
+        
+        if isUpdating {
+            restartUpdates(with: samplingPeriod)
+        }
+    }
+    
+    func unregisterSink(key: String) {
+        activeSinks.removeValue(forKey: key)
+        sinkSamplingPeriods.removeValue(forKey: key)
+        
+        if activeSinks.isEmpty {
+            stopUpdates()
+        }
+    }
+    
+    private func startUpdates(with samplingPeriod: Int) {
         _initMotionManager()
-        _motionManager.startDeviceMotionUpdates(to: OperationQueue()) { data, error in
+        _motionManager.deviceMotionUpdateInterval = Double(samplingPeriod) * 0.000001
+        
+        _motionManager.startDeviceMotionUpdates(to: OperationQueue()) { [weak self] data, error in
+            guard let self = self else { return }
+            
             if _isCleanUp {
                 return
             }
-            if (error != nil) {
-                sink(FlutterError.init(
-                        code: "UNAVAILABLE",
-                        message: error!.localizedDescription,
-                        details: nil
-                ))
+            
+            if let error = error {
+                let flutterError = FlutterError(
+                    code: "UNAVAILABLE",
+                    message: error.localizedDescription,
+                    details: nil
+                )
+                for sink in self.activeSinks.values {
+                    sink(flutterError)
+                }
                 return
             }
-            // Multiply by gravity, and adjust sign values to
-            // align with Android.
-            let acceleration = data!.userAcceleration
-            sendFlutter(
-                    x: -acceleration.x * GRAVITY,
-                    y: -acceleration.y * GRAVITY,
-                    z: -acceleration.z * GRAVITY,
-                    timestamp: data!.timestamp,
-                    sink: sink
+            
+            guard let motionData = data else { return }
+            
+            // Distribute data to all registered sinks
+            for (key, sink) in self.activeSinks {
+                if key.contains("userAccel") {
+                    // Multiply by gravity, and adjust sign values to
+                    // align with Android.
+                    let acceleration = motionData.userAcceleration
+                    sendFlutter(
+                        x: -acceleration.x * GRAVITY,
+                        y: -acceleration.y * GRAVITY,
+                        z: -acceleration.z * GRAVITY,
+                        timestamp: motionData.timestamp,
+                        sink: sink
+                    )
+                } else if key.contains("gravity") {
+                    // Multiply by gravity, and adjust sign values to
+                    // align with Android.
+                    let gravity = motionData.gravity
+                    sendFlutter(
+                        x: -gravity.x * GRAVITY,
+                        y: -gravity.y * GRAVITY,
+                        z: -gravity.z * GRAVITY,
+                        timestamp: motionData.timestamp,
+                        sink: sink
+                    )
+                }
+            }
+        }
+        
+        isUpdating = true
+    }
+    
+    private func stopUpdates() {
+        _motionManager.stopDeviceMotionUpdates()
+        isUpdating = false
+    }
+    
+    private func restartUpdates(with samplingPeriod: Int) {
+        stopUpdates()
+        startUpdates(with: samplingPeriod)
+    }
+}
+
+class FPPUserAccelStreamHandlerPlus: NSObject, MotionStreamHandler {
+    
+    var samplingPeriod = 200000 {
+        didSet {
+            DeviceMotionCoordinator.shared.updateSamplingPeriod(
+                key: sinkKey,
+                samplingPeriod: samplingPeriod
             )
         }
+    }
+    
+    private let sinkKey = "userAccel_\(UUID().uuidString)"
+    
+    func onListen(
+        withArguments arguments: Any?,
+        eventSink sink: @escaping FlutterEventSink
+    ) -> FlutterError? {
+        DeviceMotionCoordinator.shared.registerSink(
+            key: sinkKey,
+            sink: sink,
+            samplingPeriod: samplingPeriod
+        )
         return nil
     }
-
+    
     func onCancel(withArguments arguments: Any?) -> FlutterError? {
-        _motionManager.stopDeviceMotionUpdates()
+        DeviceMotionCoordinator.shared.unregisterSink(key: sinkKey)
         return nil
     }
-
+    
     func dealloc() {
+        DeviceMotionCoordinator.shared.unregisterSink(key: sinkKey)
+        FPPSensorsPlusPlugin._cleanUp()
+    }
+}
+
+class FPPGravityAccelStreamHandlerPlus: NSObject, MotionStreamHandler {
+    
+    var samplingPeriod = 200000 {
+        didSet {
+            DeviceMotionCoordinator.shared.updateSamplingPeriod(
+                key: sinkKey,
+                samplingPeriod: samplingPeriod
+            )
+        }
+    }
+    
+    private let sinkKey = "gravity_\(UUID().uuidString)"
+    
+    func onListen(
+        withArguments arguments: Any?,
+        eventSink sink: @escaping FlutterEventSink
+    ) -> FlutterError? {
+        DeviceMotionCoordinator.shared.registerSink(
+            key: sinkKey,
+            sink: sink,
+            samplingPeriod: samplingPeriod
+        )
+        return nil
+    }
+    
+    func onCancel(withArguments arguments: Any?) -> FlutterError? {
+        DeviceMotionCoordinator.shared.unregisterSink(key: sinkKey)
+        return nil
+    }
+    
+    func dealloc() {
+        DeviceMotionCoordinator.shared.unregisterSink(key: sinkKey)
         FPPSensorsPlusPlugin._cleanUp()
     }
 }

@@ -60,6 +60,15 @@ Stream<UserAccelerometerEvent> userAccelerometerEventStream({
   return _sensors.userAccelerometerEventStream(samplingPeriod: samplingPeriod);
 }
 
+/// Returns a broadcast stream of events from the device gravity accelerometer at the
+/// given sampling frequency.
+@override
+Stream<GravityAccelerometerEvent> gravityAccelerometerEventStream({
+  Duration samplingPeriod = SensorInterval.normalInterval,
+}) {
+  return _sensors.gravityAccelerometerEventStream(samplingPeriod: samplingPeriod);
+}
+
 /// Returns a broadcast stream of events from the device magnetometer at the
 /// given sampling frequency.
 @override

@@ -53,6 +53,20 @@ class Sensors extends SensorsPlatform {
         samplingPeriod: samplingPeriod);
   }
 
+  /// Returns a broadcast stream of events from the device accelerometer with
+  /// gravity removed at the given sampling frequency.
+  ///
+  /// This method always returning the same stream. If this method is called
+  /// again, the sampling period of the stream will be update. All previous
+  /// listener will also be affected.
+  @override
+  Stream<GravityAccelerometerEvent> gravityAccelerometerEventStream({
+    Duration samplingPeriod = SensorInterval.normalInterval,
+  }) {
+    return _platform.gravityAccelerometerEventStream(
+        samplingPeriod: samplingPeriod);
+  }
+
   /// Returns a broadcast stream of events from the device magnetometer at the
   /// given sampling frequency.
   ///

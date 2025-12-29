@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'package:sensors_plus_platform_interface/src/gravity_accelerometer_event.dart';
 import 'package:sensors_plus_platform_interface/src/method_channel_sensors.dart';
 import 'package:sensors_plus_platform_interface/src/sensor_interval.dart';
 
@@ -19,6 +20,7 @@ export 'src/accelerometer_event.dart';
 export 'src/gyroscope_event.dart';
 export 'src/magnetometer_event.dart';
 export 'src/user_accelerometer_event.dart';
+export 'src/gravity_accelerometer_event.dart';
 export 'src/barometer_event.dart';
 export 'src/sensor_interval.dart';
 
@@ -77,7 +79,15 @@ abstract class SensorsPlatform extends PlatformInterface {
     Duration samplingPeriod = SensorInterval.normalInterval,
   }) {
     throw UnimplementedError(
-        'listenToAccelerometerEvents has not been implemented.');
+      'listenToAccelerometerEvents has not been implemented.');
+  }
+
+  /// Returns a broadcast stream of events from the device gravity accelerometer at the
+  /// given sampling frequency.
+  Stream<GravityAccelerometerEvent> gravityAccelerometerEventStream({
+    Duration samplingPeriod = SensorInterval.normalInterval,
+  }) {
+    throw UnimplementedError('gravityAccelerometerEvents has not been implemented.');
   }
 
   /// Returns a broadcast stream of events from the device gyroscope at the
@@ -94,7 +104,7 @@ abstract class SensorsPlatform extends PlatformInterface {
     Duration samplingPeriod = SensorInterval.normalInterval,
   }) {
     throw UnimplementedError(
-        'userAccelerometerEvents has not been implemented.');
+      'userAccelerometerEvents has not been implemented.');
   }
 
   /// Returns a broadcast stream of events from the device magnetometer at the

@@ -56,18 +56,21 @@ class _MyHomePageState extends State<MyHomePage> {
   static const int _snakeColumns = 20;
   static const double _snakeCellSize = 10.0;
 
+  GravityAccelerometerEvent? _gravityAccelerometerEvent;
   UserAccelerometerEvent? _userAccelerometerEvent;
   AccelerometerEvent? _accelerometerEvent;
   GyroscopeEvent? _gyroscopeEvent;
   MagnetometerEvent? _magnetometerEvent;
   BarometerEvent? _barometerEvent;
 
+  DateTime? _gravityAccelerometerUpdateTime;
   DateTime? _userAccelerometerUpdateTime;
   DateTime? _accelerometerUpdateTime;
   DateTime? _gyroscopeUpdateTime;
   DateTime? _magnetometerUpdateTime;
   DateTime? _barometerUpdateTime;
 
+  int? _gravityAccelerometerLastInterval;
   int? _userAccelerometerLastInterval;
   int? _accelerometerLastInterval;
   int? _gyroscopeLastInterval;
@@ -124,13 +127,25 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text('GravityAccelerometer'),
+                    ),
+                    Text(_gravityAccelerometerEvent?.x.toStringAsFixed(1) ?? '?'),
+                    Text(_gravityAccelerometerEvent?.y.toStringAsFixed(1) ?? '?'),
+                    Text(_gravityAccelerometerEvent?.z.toStringAsFixed(1) ?? '?'),
+                    Text('${_gravityAccelerometerLastInterval?.toString() ?? '?'} ms'),
+                  ],
+                ),
+                TableRow(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
                       child: Text('UserAccelerometer'),
                     ),
                     Text(_userAccelerometerEvent?.x.toStringAsFixed(1) ?? '?'),
                     Text(_userAccelerometerEvent?.y.toStringAsFixed(1) ?? '?'),
                     Text(_userAccelerometerEvent?.z.toStringAsFixed(1) ?? '?'),
                     Text(
-                        '${_userAccelerometerLastInterval?.toString() ?? '?'} ms'),
+                      '${_userAccelerometerLastInterval?.toString() ?? '?'} ms'),
                   ],
                 ),
                 TableRow(
@@ -195,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Text('Barometer'),
                     ),
                     Text(
-                        '${_barometerEvent?.pressure.toStringAsFixed(1) ?? '?'} hPa'),
+                      '${_barometerEvent?.pressure.toStringAsFixed(1) ?? '?'} hPa'),
                     Text('${_barometerLastInterval?.toString() ?? '?'} ms'),
                   ],
                 ),
@@ -237,8 +252,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 onSelectionChanged: (value) {
                   setState(() {
                     sensorInterval = value.first;
+                    gravityAccelerometerEventStream(samplingPeriod: sensorInterval);
                     userAccelerometerEventStream(
-                        samplingPeriod: sensorInterval);
+                      samplingPeriod: sensorInterval);
                     accelerometerEventStream(samplingPeriod: sensorInterval);
                     gyroscopeEventStream(samplingPeriod: sensorInterval);
                     magnetometerEventStream(samplingPeriod: sensorInterval);
@@ -265,6 +281,35 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _streamSubscriptions.add(
+      gravityAccelerometerEventStream(samplingPeriod: sensorInterval).listen(
+        (GravityAccelerometerEvent event) {
+          final now = event.timestamp;
+          setState(() {
+            _gravityAccelerometerEvent = event;
+            if (_gravityAccelerometerUpdateTime != null) {
+              final interval = now.difference(_gravityAccelerometerUpdateTime!);
+              if (interval > _ignoreDuration) {
+                _gravityAccelerometerLastInterval = interval.inMilliseconds;
+              }
+            }
+          });
+          _gravityAccelerometerUpdateTime = now;
+        },
+        onError: (e) {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return const AlertDialog(
+                  title: Text("Sensor Not Found"),
+                  content: Text(
+                    "It seems that your device doesn't support Gravity Accelerometer Sensor"),
+                );
+              });
+        },
+        cancelOnError: true,
+      ),
+    );
+    _streamSubscriptions.add(
       userAccelerometerEventStream(samplingPeriod: sensorInterval).listen(
         (UserAccelerometerEvent event) {
           final now = event.timestamp;
@@ -286,7 +331,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return const AlertDialog(
                   title: Text("Sensor Not Found"),
                   content: Text(
-                      "It seems that your device doesn't support User Accelerometer Sensor"),
+                    "It seems that your device doesn't support User Accelerometer Sensor"),
                 );
               });
         },
@@ -315,7 +360,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return const AlertDialog(
                   title: Text("Sensor Not Found"),
                   content: Text(
-                      "It seems that your device doesn't support Accelerometer Sensor"),
+                    "It seems that your device doesn't support Accelerometer Sensor"),
                 );
               });
         },
@@ -344,7 +389,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return const AlertDialog(
                   title: Text("Sensor Not Found"),
                   content: Text(
-                      "It seems that your device doesn't support Gyroscope Sensor"),
+                    "It seems that your device doesn't support Gyroscope Sensor"),
                 );
               });
         },
@@ -373,7 +418,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return const AlertDialog(
                   title: Text("Sensor Not Found"),
                   content: Text(
-                      "It seems that your device doesn't support Magnetometer Sensor"),
+                    "It seems that your device doesn't support Magnetometer Sensor"),
                 );
               });
         },
@@ -402,7 +447,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 return const AlertDialog(
                   title: Text("Sensor Not Found"),
                   content: Text(
-                      "It seems that your device doesn't support Barometer Sensor"),
+                    "It seems that your device doesn't support Barometer Sensor"),
                 );
               });
         },

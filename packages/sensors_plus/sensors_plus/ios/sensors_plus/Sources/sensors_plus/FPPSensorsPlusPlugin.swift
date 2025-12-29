@@ -31,6 +31,16 @@ public class FPPSensorsPlusPlugin: NSObject, FlutterPlugin {
         _eventChannels[userAccelerometerStreamHandlerName] = userAccelerometerChannel
         _streamHandlers[userAccelerometerStreamHandlerName] = userAccelerometerStreamHandler
 
+        let gravityAccelerometerStreamHandler = FPPGravityAccelStreamHandlerPlus()
+        let gravityAccelerometerStreamHandlerName = "dev.fluttercommunity.plus/sensors/gravity_accel"
+        let gravityAccelerometerChannel = FlutterEventChannel(
+                name: gravityAccelerometerStreamHandlerName,
+                binaryMessenger: registrar.messenger()
+        )
+        gravityAccelerometerChannel.setStreamHandler(gravityAccelerometerStreamHandler)
+        _eventChannels[gravityAccelerometerStreamHandlerName] = gravityAccelerometerChannel
+        _streamHandlers[gravityAccelerometerStreamHandlerName] = gravityAccelerometerStreamHandler
+
         let gyroscopeStreamHandler = FPPGyroscopeStreamHandlerPlus()
         let gyroscopeStreamHandlerName = "dev.fluttercommunity.plus/sensors/gyroscope"
         let gyroscopeChannel = FlutterEventChannel(
@@ -72,6 +82,8 @@ public class FPPSensorsPlusPlugin: NSObject, FlutterPlugin {
                 streamHandler = _streamHandlers[accelerometerStreamHandlerName]
             case "setUserAccelerometerSamplingPeriod":
                 streamHandler = _streamHandlers[userAccelerometerStreamHandlerName]
+            case "setGravityAccelerometerSamplingPeriod":
+                streamHandler = _streamHandlers[gravityAccelerometerStreamHandlerName]
             case "setGyroscopeSamplingPeriod":
                 streamHandler = _streamHandlers[gyroscopeStreamHandlerName]
             case "setMagnetometerSamplingPeriod":
