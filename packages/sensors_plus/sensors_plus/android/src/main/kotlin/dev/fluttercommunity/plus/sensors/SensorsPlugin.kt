@@ -18,12 +18,14 @@ class SensorsPlugin : FlutterPlugin {
     private lateinit var gyroscopeChannel: EventChannel
     private lateinit var magnetometerChannel: EventChannel
     private lateinit var barometerChannel: EventChannel
+    private lateinit var gravityChannel: EventChannel
 
     private lateinit var accelerometerStreamHandler: StreamHandlerImpl
     private lateinit var userAccelStreamHandler: StreamHandlerImpl
     private lateinit var gyroscopeStreamHandler: StreamHandlerImpl
     private lateinit var magnetometerStreamHandler: StreamHandlerImpl
     private lateinit var barometerStreamHandler: StreamHandlerImpl
+    private lateinit var gravityStreamHandler: StreamHandlerImpl
 
     override fun onAttachedToEngine(binding: FlutterPluginBinding) {
         setupMethodChannel(binding.binaryMessenger)
@@ -44,6 +46,7 @@ class SensorsPlugin : FlutterPlugin {
                 "setGyroscopeSamplingPeriod" -> gyroscopeStreamHandler
                 "setMagnetometerSamplingPeriod" -> magnetometerStreamHandler
                 "setBarometerSamplingPeriod" -> barometerStreamHandler
+                "setGravitySamplingPeriod" -> gravityStreamHandler
                 else -> null
             }
             streamHandler?.samplingPeriod = call.arguments as Int
@@ -96,6 +99,13 @@ class SensorsPlugin : FlutterPlugin {
             Sensor.TYPE_PRESSURE
         )
         barometerChannel.setStreamHandler(barometerStreamHandler)
+
+        gravityChannel = EventChannel(messenger, GRAVITY_CHANNEL_NAME)
+        gravityStreamHandler = StreamHandlerImpl(
+            sensorsManager,
+            Sensor.TYPE_GRAVITY
+        )
+        gravityChannel.setStreamHandler(gravityStreamHandler)
     }
 
     private fun teardownEventChannels() {
@@ -104,12 +114,14 @@ class SensorsPlugin : FlutterPlugin {
         gyroscopeChannel.setStreamHandler(null)
         magnetometerChannel.setStreamHandler(null)
         barometerChannel.setStreamHandler(null)
+        gravityChannel.setStreamHandler(null)
 
         accelerometerStreamHandler.onCancel(null)
         userAccelStreamHandler.onCancel(null)
         gyroscopeStreamHandler.onCancel(null)
         magnetometerStreamHandler.onCancel(null)
         barometerStreamHandler.onCancel(null)
+        gravityStreamHandler.onCancel(null)
     }
 
     companion object {
@@ -125,5 +137,7 @@ class SensorsPlugin : FlutterPlugin {
             "dev.fluttercommunity.plus/sensors/magnetometer"
         private const val BAROMETER_CHANNEL_NAME =
             "dev.fluttercommunity.plus/sensors/barometer"
+        private const val GRAVITY_CHANNEL_NAME =
+            "dev.fluttercommunity.plus/sensors/gravity"
     }
 }

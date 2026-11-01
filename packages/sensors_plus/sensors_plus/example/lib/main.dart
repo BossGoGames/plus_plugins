@@ -58,18 +58,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   UserAccelerometerEvent? _userAccelerometerEvent;
   AccelerometerEvent? _accelerometerEvent;
+  GravityEvent? _gravityEvent;
   GyroscopeEvent? _gyroscopeEvent;
   MagnetometerEvent? _magnetometerEvent;
   BarometerEvent? _barometerEvent;
 
   DateTime? _userAccelerometerUpdateTime;
   DateTime? _accelerometerUpdateTime;
+  DateTime? _gravityUpdateTime;
   DateTime? _gyroscopeUpdateTime;
   DateTime? _magnetometerUpdateTime;
   DateTime? _barometerUpdateTime;
 
   int? _userAccelerometerLastInterval;
   int? _accelerometerLastInterval;
+  int? _gravityLastInterval;
   int? _gyroscopeLastInterval;
   int? _magnetometerLastInterval;
   int? _barometerLastInterval;
@@ -143,6 +146,18 @@ class _MyHomePageState extends State<MyHomePage> {
                     Text(_accelerometerEvent?.y.toStringAsFixed(1) ?? '?'),
                     Text(_accelerometerEvent?.z.toStringAsFixed(1) ?? '?'),
                     Text('${_accelerometerLastInterval?.toString() ?? '?'} ms'),
+                  ],
+                ),
+                TableRow(
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8.0),
+                      child: Text('Gravity'),
+                    ),
+                    Text(_gravityEvent?.x.toStringAsFixed(1) ?? '?'),
+                    Text(_gravityEvent?.y.toStringAsFixed(1) ?? '?'),
+                    Text(_gravityEvent?.z.toStringAsFixed(1) ?? '?'),
+                    Text('${_gravityLastInterval?.toString() ?? '?'} ms'),
                   ],
                 ),
                 TableRow(
@@ -240,6 +255,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     userAccelerometerEventStream(
                         samplingPeriod: sensorInterval);
                     accelerometerEventStream(samplingPeriod: sensorInterval);
+                    gravityEventStream(samplingPeriod: sensorInterval);
                     gyroscopeEventStream(samplingPeriod: sensorInterval);
                     magnetometerEventStream(samplingPeriod: sensorInterval);
                     barometerEventStream(samplingPeriod: sensorInterval);
@@ -316,6 +332,35 @@ class _MyHomePageState extends State<MyHomePage> {
                   title: Text("Sensor Not Found"),
                   content: Text(
                       "It seems that your device doesn't support Accelerometer Sensor"),
+                );
+              });
+        },
+        cancelOnError: true,
+      ),
+    );
+    _streamSubscriptions.add(
+      gravityEventStream(samplingPeriod: sensorInterval).listen(
+        (GravityEvent event) {
+          final now = event.timestamp;
+          setState(() {
+            _gravityEvent = event;
+            if (_gravityUpdateTime != null) {
+              final interval = now.difference(_gravityUpdateTime!);
+              if (interval > _ignoreDuration) {
+                _gravityLastInterval = interval.inMilliseconds;
+              }
+            }
+          });
+          _gravityUpdateTime = now;
+        },
+        onError: (e) {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return const AlertDialog(
+                  title: Text("Sensor Not Found"),
+                  content: Text(
+                      "It seems that your device doesn't support Gravity Sensor"),
                 );
               });
         },

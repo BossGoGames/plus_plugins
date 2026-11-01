@@ -54,6 +54,24 @@ extension type LinearAccelerationSensor._(JSObject _) implements JSObject {
   external void start();
 }
 
+/// GravitySensor API
+/// https://developer.mozilla.org/en-US/docs/Web/API/GravitySensor
+@JS('GravitySensor')
+extension type GravitySensor._(JSObject _) implements JSObject {
+  external factory GravitySensor([
+    SensorOptions options,
+  ]);
+
+  external double get x;
+  external double get y;
+  external double get z;
+
+  external set onreading(JSFunction callback);
+  external set onerror(JSFunction callback);
+
+  external void start();
+}
+
 /// Magnetometer API
 /// https://developer.mozilla.org/en-US/docs/Web/API/Magnetometer
 @JS('Magnetometer')

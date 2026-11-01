@@ -21,7 +21,7 @@ public class FPPSensorsPlusPlugin: NSObject, FlutterPlugin {
         _eventChannels[accelerometerStreamHandlerName] = accelerometerChannel
         _streamHandlers[accelerometerStreamHandlerName] = accelerometerStreamHandler
 
-        let userAccelerometerStreamHandler = FPPUserAccelStreamHandlerPlus()
+        let userAccelerometerStreamHandler = FPPDeviceMotionStreamHandlerPlus { $0.userAcceleration }
         let userAccelerometerStreamHandlerName = "dev.fluttercommunity.plus/sensors/user_accel"
         let userAccelerometerChannel = FlutterEventChannel(
                 name: userAccelerometerStreamHandlerName,
@@ -61,6 +61,16 @@ public class FPPSensorsPlusPlugin: NSObject, FlutterPlugin {
         _eventChannels[barometerStreamHandlerName] = barometerChannel
         _streamHandlers[barometerStreamHandlerName] = barometerStreamHandler
 
+        let gravityStreamHandler = FPPDeviceMotionStreamHandlerPlus { $0.gravity }
+        let gravityStreamHandlerName = "dev.fluttercommunity.plus/sensors/gravity"
+        let gravityChannel = FlutterEventChannel(
+                name: gravityStreamHandlerName,
+                binaryMessenger: registrar.messenger()
+        )
+        gravityChannel.setStreamHandler(gravityStreamHandler)
+        _eventChannels[gravityStreamHandlerName] = gravityChannel
+        _streamHandlers[gravityStreamHandlerName] = gravityStreamHandler
+
         let methodChannel = FlutterMethodChannel(
                 name: "dev.fluttercommunity.plus/sensors/method",
                 binaryMessenger: registrar.messenger()
@@ -78,6 +88,8 @@ public class FPPSensorsPlusPlugin: NSObject, FlutterPlugin {
                 streamHandler = _streamHandlers[magnetometerStreamHandlerName]
             case "setBarometerSamplingPeriod":
                 streamHandler = _streamHandlers[barometerStreamHandlerName]
+            case "setGravitySamplingPeriod":
+                streamHandler = _streamHandlers[gravityStreamHandlerName]
             default:
                 return result(FlutterMethodNotImplemented)
             }

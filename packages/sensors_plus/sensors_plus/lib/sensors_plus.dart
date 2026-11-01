@@ -72,3 +72,11 @@ Stream<BarometerEvent> barometerEventStream({
 }) {
   return _sensors.barometerEventStream(samplingPeriod: samplingPeriod);
 }
+
+/// Returns a broadcast stream of events from the device gravity sensor at the
+/// given sampling frequency.
+Stream<GravityEvent> gravityEventStream({
+  Duration samplingPeriod = SensorInterval.normalInterval,
+}) {
+  return _sensors.gravityEventStream(samplingPeriod: samplingPeriod);
+}

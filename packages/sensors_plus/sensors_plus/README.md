@@ -6,8 +6,8 @@
 
 [<img src="../../../assets/flutter-favorite-badge.png" width="100" />](https://flutter.dev/docs/development/packages-and-plugins/favorites)
 
-A Flutter plugin to access the accelerometer, gyroscope, magnetometer and
-barometer sensors.
+A Flutter plugin to access the accelerometer, gyroscope, magnetometer,
+barometer and gravity sensors.
 
 ## Platform Support
 
@@ -64,15 +64,21 @@ The plugin exposes such classes of sensor events through a set of streams:
   (the opposite of the graviational acceleration).
   This can be used to infer information about the position of the device (horizontal/vertical/tilted).
   `AccelerometerEvent` reports zero acceleration if the device is free falling.
+- `GravityEvent` describes the force of gravity acting on the device, in m/s<sup>2</sup>.
+  This is the gravity component that `UserAccelerometerEvent` filters out of
+  `AccelerometerEvent`, as computed by the platform (`Sensor.TYPE_GRAVITY` on Android,
+  `CMDeviceMotion.gravity` on iOS, `GravitySensor` on web). While the device is still,
+  it is equal to `AccelerometerEvent`, so it can be used to tell the orientation of the
+  device without the noise caused by its movement.
 - `GyroscopeEvent` describes the rotation of the device.
 - `MagnetometerEvent` describes the ambient magnetic field surrounding the
   device. A compass is an example usage of this data.
 - `BarometerEvent` describes the atmospheric pressure surrounding the device, in hPa.
   An altimeter is an example usage of this data. Not supported on web browsers.
 
-These events are exposed through a `BroadcastStream`: `accelerometerEvents`,
-`userAccelerometerEvents`, `gyroscopeEvents`, `magnetometerEvents`, and `barometerEvents`,
-respectively.
+These events are exposed through a `BroadcastStream`: `accelerometerEventStream()`,
+`userAccelerometerEventStream()`, `gravityEventStream()`, `gyroscopeEventStream()`,
+`magnetometerEventStream()`, and `barometerEventStream()`, respectively.
 
 > [!NOTE]
 >
@@ -143,6 +149,18 @@ barometerEvents.listen(
   cancelOnError: true,
 );
 // [BarometerEvent (pressure: 1000.0)]
+
+gravityEventStream().listen(
+  (GravityEvent event) {
+    print(event);
+  },
+  onError: (error) {
+    // Logic to handle error
+    // Needed for Android in case sensor is not available
+    },
+  cancelOnError: true,
+);
+// [GravityEvent (x: 0.0, y: 9.8, z: 0.0)]
 ```
 
 Alternatively, every stream allows to specify the sampling rate for its sensor using one of predefined constants or using a custom value.
@@ -186,6 +204,10 @@ The following lists the restrictions for the sensors on certain platforms due to
 > [!NOTE]
 >
 > Plugin won't crash the app in the case of usage on these platforms, but it is highly recommended to add onError() to handle such cases gracefully.
+
+- **Gravity on web**
+
+  On web, gravity uses the [GravitySensor API](https://developer.mozilla.org/en-US/docs/Web/API/GravitySensor), which is currently only available in Chromium-based browsers. In other browsers the stream emits a single zero event, like the other web sensors when their API is unavailable.
 
 - **Sampling periods for web**
 

@@ -14,12 +14,14 @@ import 'src/gyroscope_event.dart';
 import 'src/magnetometer_event.dart';
 import 'src/user_accelerometer_event.dart';
 import 'src/barometer_event.dart';
+import 'src/gravity_event.dart';
 
 export 'src/accelerometer_event.dart';
 export 'src/gyroscope_event.dart';
 export 'src/magnetometer_event.dart';
 export 'src/user_accelerometer_event.dart';
 export 'src/barometer_event.dart';
+export 'src/gravity_event.dart';
 export 'src/sensor_interval.dart';
 
 /// The common platform interface for sensors.
@@ -111,5 +113,13 @@ abstract class SensorsPlatform extends PlatformInterface {
     Duration samplingPeriod = SensorInterval.normalInterval,
   }) {
     throw UnimplementedError('barometerEvents has not been implemented.');
+  }
+
+  /// Returns a broadcast stream of events from the device gravity sensor at
+  /// the given sampling frequency.
+  Stream<GravityEvent> gravityEventStream({
+    Duration samplingPeriod = SensorInterval.normalInterval,
+  }) {
+    throw UnimplementedError('gravityEvents has not been implemented.');
   }
 }

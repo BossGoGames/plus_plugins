@@ -106,6 +106,26 @@ void main() {
     expect(event.pressure, sensorData[0]);
     expect(event.timestamp, date);
   });
+
+  test('gravityEvents are streamed', () async {
+    const channelName = 'dev.fluttercommunity.plus/sensors/gravity';
+    final date = DateTime.now();
+    final sensorData = <double>[
+      0.1,
+      9.7,
+      0.2,
+      date.microsecondsSinceEpoch.toDouble(),
+    ];
+    _initializeFakeMethodChannel('setGravitySamplingPeriod');
+    _initializeFakeSensorChannel(channelName, sensorData);
+
+    final event = await gravityEventStream().first;
+
+    expect(event.x, sensorData[0]);
+    expect(event.y, sensorData[1]);
+    expect(event.z, sensorData[2]);
+    expect(event.timestamp, date);
+  });
 }
 
 void _initializeFakeMethodChannel(String methodName) {

@@ -98,12 +98,32 @@ class FPPAccelerometerStreamHandlerPlus: NSObject, MotionStreamHandler {
     }
 }
 
-class FPPUserAccelStreamHandlerPlus: NSObject, MotionStreamHandler {
+// A single CMMotionManager only supports one device motion handler at a time,
+// so streams derived from CMDeviceMotion (user accelerometer, gravity) share
+// one subscription: updates are fanned out to every listening handler, and
+// stopped once the last one cancels. The update interval is the shortest
+// sampling period requested by the listening handlers.
+var _deviceMotionStreamHandlers = Set<FPPDeviceMotionStreamHandlerPlus>()
+
+func _updateDeviceMotionUpdateInterval() {
+    if let samplingPeriod = _deviceMotionStreamHandlers.map({ $0.samplingPeriod }).min() {
+        _motionManager.deviceMotionUpdateInterval = Double(samplingPeriod) * 0.000001
+    }
+}
+
+class FPPDeviceMotionStreamHandlerPlus: NSObject, MotionStreamHandler {
+
+    private let acceleration: (CMDeviceMotion) -> CMAcceleration
+    private var sink: FlutterEventSink?
+
+    init(acceleration: @escaping (CMDeviceMotion) -> CMAcceleration) {
+        self.acceleration = acceleration
+    }
 
     var samplingPeriod = 200000 {
         didSet {
             _initMotionManager()
-            _motionManager.deviceMotionUpdateInterval = Double(samplingPeriod) * 0.000001
+            _updateDeviceMotionUpdateInterval()
         }
     }
 
@@ -112,34 +132,58 @@ class FPPUserAccelStreamHandlerPlus: NSObject, MotionStreamHandler {
             eventSink sink: @escaping FlutterEventSink
     ) -> FlutterError? {
         _initMotionManager()
-        _motionManager.startDeviceMotionUpdates(to: OperationQueue()) { data, error in
-            if _isCleanUp {
-                return
+        self.sink = sink
+        let isFirstListener = _deviceMotionStreamHandlers.isEmpty
+        _deviceMotionStreamHandlers.insert(self)
+        _updateDeviceMotionUpdateInterval()
+        if isFirstListener {
+            // Deliver on the main queue, where listeners are added and removed.
+            _motionManager.startDeviceMotionUpdates(to: OperationQueue.main) { data, error in
+                if _isCleanUp {
+                    return
+                }
+                for handler in _deviceMotionStreamHandlers {
+                    handler.send(data: data, error: error)
+                }
             }
-            if (error != nil) {
-                sink(FlutterError.init(
-                        code: "UNAVAILABLE",
-                        message: error!.localizedDescription,
-                        details: nil
-                ))
-                return
-            }
-            // Multiply by gravity, and adjust sign values to
-            // align with Android.
-            let acceleration = data!.userAcceleration
-            sendFlutter(
-                    x: -acceleration.x * GRAVITY,
-                    y: -acceleration.y * GRAVITY,
-                    z: -acceleration.z * GRAVITY,
-                    timestamp: data!.timestamp,
-                    sink: sink
-            )
         }
         return nil
     }
 
+    private func send(data: CMDeviceMotion?, error: Error?) {
+        guard let sink = sink else {
+            return
+        }
+        if (error != nil) {
+            sink(FlutterError.init(
+                    code: "UNAVAILABLE",
+                    message: error!.localizedDescription,
+                    details: nil
+            ))
+            return
+        }
+        // Multiply by gravity, and adjust sign values to
+        // align with Android.
+        let vector = acceleration(data!)
+        sendFlutter(
+                x: -vector.x * GRAVITY,
+                y: -vector.y * GRAVITY,
+                z: -vector.z * GRAVITY,
+                timestamp: data!.timestamp,
+                sink: sink
+        )
+    }
+
     func onCancel(withArguments arguments: Any?) -> FlutterError? {
-        _motionManager.stopDeviceMotionUpdates()
+        sink = nil
+        if _deviceMotionStreamHandlers.remove(self) == nil {
+            return nil
+        }
+        if _deviceMotionStreamHandlers.isEmpty {
+            _motionManager.stopDeviceMotionUpdates()
+        } else {
+            _updateDeviceMotionUpdateInterval()
+        }
         return nil
     }
 

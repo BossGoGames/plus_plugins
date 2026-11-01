@@ -125,7 +125,7 @@ package, such as CFBundleVersion on iOS or versionCode on Android.
 
 > [![sensors_plus][sensors_plus_badge_pub]][sensors_plus] [![pub points][sensors_plus_badge_pub_points]][sensors_plus_pub_points]
 
-Flutter plugin for accessing accelerometer, gyroscope, magnetometer and barometer sensors.
+Flutter plugin for accessing accelerometer, gyroscope, magnetometer, barometer and gravity sensors.
 
 [[readme][sensors_plus_readme]] [[code][sensors_plus_code]]
 

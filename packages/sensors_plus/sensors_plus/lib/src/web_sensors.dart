@@ -291,6 +291,60 @@ class WebSensorsPlugin extends SensorsPlatform {
     // Therefore, we simply return an empty stream.
     return const Stream.empty();
   }
+
+  StreamController<GravityEvent>? _gravityStreamController;
+  late Stream<GravityEvent> _gravityResultStream;
+
+  @override
+  Stream<GravityEvent> gravityEventStream({
+    Duration samplingPeriod = SensorInterval.normalInterval,
+  }) {
+    if (_gravityStreamController == null) {
+      _gravityStreamController = StreamController<GravityEvent>();
+      _featureDetected(
+        () {
+          final gravitySensor = GravitySensor(
+            SensorOptions(
+              frequency: samplingPeriod.frequency,
+            ),
+          );
+
+          gravitySensor.start();
+
+          gravitySensor.onreading = (Event _) {
+            _gravityStreamController!.add(
+              GravityEvent(
+                gravitySensor.x,
+                gravitySensor.y,
+                gravitySensor.z,
+                DateTime.now(),
+              ),
+            );
+          }.toJS;
+
+          gravitySensor.onerror = (SensorErrorEvent e) {
+            developer.log(
+              'The gravity sensor API is supported but something is wrong!',
+              error: e.error.message,
+            );
+          }.toJS;
+        },
+        apiName: 'GravitySensor()',
+        permissionName: 'accelerometer',
+        onError: () {
+          _gravityStreamController!.add(GravityEvent(0, 0, 0, DateTime.now()));
+        },
+      );
+      _gravityResultStream =
+          _gravityStreamController!.stream.asBroadcastStream();
+
+      _gravityStreamController!.onCancel = () {
+        _gravityStreamController!.close();
+      };
+    }
+
+    return _gravityResultStream;
+  }
 }
 
 extension on Duration {

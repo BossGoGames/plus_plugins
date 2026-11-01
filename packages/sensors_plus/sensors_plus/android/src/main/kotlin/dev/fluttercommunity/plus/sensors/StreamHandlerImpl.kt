@@ -59,6 +59,7 @@ internal class StreamHandlerImpl(
             Sensor.TYPE_GYROSCOPE -> "Gyroscope"
             Sensor.TYPE_MAGNETIC_FIELD -> "Magnetometer"
             Sensor.TYPE_PRESSURE -> "Barometer"
+            Sensor.TYPE_GRAVITY -> "Gravity"
             else -> "Undefined"
         }
     }
